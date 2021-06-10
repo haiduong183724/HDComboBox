@@ -1,7 +1,8 @@
 <template>
   <div id="app">
     <img alt="Vue logo" src="./assets/logo.png">
-    <ComboBox :data="cacheData" />
+    <ComboBox :data="cacheData" :width="300" :height="40" />
+    <div>Helo</div>
   </div>
 </template>
 
