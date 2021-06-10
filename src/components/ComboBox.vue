@@ -287,11 +287,11 @@ export default {
         color: white;
     }
     .item-selected{
-        background: #8ec6ff;
-        color: white;
+        background: #09610e;
+        color: rgb(255, 255, 255);
     }
     .row-current{
-        background: rgb(34, 151, 34) !important ;
+        background: rgb(112, 184, 202) !important ;
     }
     .active{
         border: 2px solid rgb(53, 202, 53) !important;
