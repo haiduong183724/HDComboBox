@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <img alt="Vue logo" src="./assets/logo.png">
-    <ComboBox/>
+    <ComboBox :data="cacheData" />
   </div>
 </template>
 
@@ -11,6 +11,15 @@ import ComboBox from './components/ComboBox.vue'
 export default {
   components: {
     ComboBox
+  },
+  data(){
+    return{
+      cacheData:[
+                {text:'Nam', value:0},
+                {text:'Nữ', value:1},
+                {text:'Gay', value:2},
+            ],
+    }
   }
 }
 </script>

@@ -1,5 +1,6 @@
 .<template>
-    <div class="combo-box-wraper">
+    <div class="combo-box-wraper" v-on:keyup.38 = "moveUp()" id="hd-combo-box"
+        v-on:keyup.40 = "moveDown()" v-on:keyup.enter = "selectedByEnter()" >
         <div class="combo-box-wrap" v-on:click = "()=>{isshow = !isshow }" v-on:change = "search()" :class="{'no-data':!valid}">
             <input type="text" v-model="selectValue.text" v-on:input = "search()">
             <div class="combo-select-show">
@@ -8,9 +9,9 @@
                 </i>
             </div>
         </div>
-        <div class="selected-list-combo-box" :class="{'selection-show':isshow}" id = 'combo-box-data'>
-            <div  v-for="(item) in dataShow" :key="item.value" class="combo-selection" 
-            v-on:click = "select(item)" :class="{'item-selected': selectValue.text == item.text}">
+        <div class="selected-list-combo-box" :class="{'selection-show':isshow,}" id = 'combo-box-data'>
+            <div  v-for="(item, index) in dataShow" :key="item.value" class="combo-selection" 
+            v-on:click = "select(item)" :class="{'item-selected': selectValue.text == item.text, 'row-current':index == rowMarked}">
                 <span>{{item.text}}</span>
             </div>
         </div>
@@ -21,26 +22,33 @@ export default {
     props:{
         width:String,
         height:String,
-        selected:Object ,
+        // thông tin của các select trong combo box
         data:Array,
+        id:String,
     },
     data(){
         return{
+            // isshow = true:  hiển thị selecbox, isshow = false: đóng 
             isshow:false,
+            // giá trị đang được lựa chọn của selecbox
             selectValue: {},
+            // giá trị của selectbox có hợp lệ hay không
             valid:true,
-            cacheData:[
-                {text:'Nam', value:0},
-                {text:'Nữ', value:1},
-                {text:'Khác', value:2},
-            ],
+            // mảng lưu các giá trị select được truyền vào từ component cha
+            cacheData:this._props.data,
+            // mảng lưu các thông tin sẽ được hiển thị ta màn hình
             dataShow:[],
+            // giá trị của dòng đang được đánh dấu trong combobox
+            rowMarked:-1,
+            comboboxId:this._props.id,
         };
         
     },
+    //khởi tạo 
     created(){
         let me = this;
         this.dataShow = this.cacheData;
+        // đóng combo box khi nhấp ra ngoài màn hình
         document.addEventListener('mouseup', function(e) {
         var container = document.getElementById('combo-box-data');
         if (!container.contains(e.target)) {
@@ -49,17 +57,73 @@ export default {
 });
     },
     mounted(){
-    
+        this.$el.getValue = function(){return this.value;}
+        this.$el.getText = function(){return this.text;}
     },
     methods:{
+        // hàm xử lý khi nhấn nút xuống
+        moveDown(){
+            let me = this;
+            // chuyển dòng đang được đánh dấu lên trên
+            if(me.rowMarked < this.dataShow.length -1){
+                this.rowMarked++;
+            }
+        },
+        // hàm xử lý khi nhấn nút lên
+        moveUp(){
+            let me = this;
+            // chuyển dòng đang được đánh dấu lên trên
+            if(me.rowMarked > 0){
+                this.rowMarked--;
+            }
+            
+        },
+        // hàm xử lý khi nhấn enter
+        selectedByEnter(){
+            let me = this;
+            // nếu có 1 dòng đã được đánh dấu
+            if(me.rowMarked>=0 && me.rowMarked < me.dataShow.length){
+                let currentValue = me.dataShow[me.rowMarked];
+                // giá trị của combobox là giá trị dòng đánh dấu đó
+                me.select(currentValue);
+                me.rowMarked = -1;
+                me.valid = true;
+            }
+            // chưa có dòng nào dược đánh dấu
+            else{
+                // nếu có ít nhất 1 giá trị khớp với text trong combobox
+                if(me.dataShow.length >= 1){
+                    // lấy luôn giá trị đầu tiên làm giá trị cho combobox
+                    let currentValue = me.dataShow[0];
+                    me.select(currentValue);
+                    me.valid = true;
+                }
+                else{
+                    // nếu không có giá trị nào khớp: đóng form, hiện invalid
+                    me.hideform();
+                    me.valid = false;
+                }
+            }
+        },
+        getValue(){
+            return this.selectValue.value;
+        },
+        getText(){
+            return this.selectValue.text;
+        },
+        // ẩn form đi
         hideform(){
             this.isshow = false;
+            console.log(this._props.id);
         },
+        // lựa chọn 1 giá trị
         select(value){
             this.selectValue = {...value};
-            this.isshow = false;
-            console.log(this.cacheData);
+            this.hideform();
+            this.$el.value = this.selectValue.value;
+            this.$el.text = this.selectValue.text;
         },
+        // chuyển từ tiếng việt có dấu sang không dấu
         fomatText(str){
             str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g,"a"); 
             str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g,"e"); 
@@ -75,41 +139,39 @@ export default {
             str = str.replace(/Ù|Ú|Ụ|Ủ|Ũ|Ư|Ừ|Ứ|Ự|Ử|Ữ/g, "U");
             str = str.replace(/Ỳ|Ý|Ỵ|Ỷ|Ỹ/g, "Y");
             str = str.replace(/Đ/g, "D");
-            // Some system encode vietnamese combining accent as individual utf-8 characters
             // Một vài bộ encode coi các dấu mũ, dấu chữ như một kí tự riêng biệt nên thêm hai dòng này
             str = str.replace(/\u0300|\u0301|\u0303|\u0309|\u0323/g, ""); // ̀ ́ ̃ ̉ ̣  huyền, sắc, ngã, hỏi, nặng
             str = str.replace(/\u02C6|\u0306|\u031B/g, ""); // ˆ ̆ ̛  Â, Ê, Ă, Ơ, Ư
-            // Remove extra spaces
             // Bỏ các khoảng trắng liền nhau
             str = str.replace(/ + /g," ");
             str = str.trim();
-            // Remove punctuations
             // Bỏ dấu câu, kí tự đặc biệt
             str = str.replace(/Ư|@|%|\^|\*|\(|\)|\+|=|<|>|\?|\/|,|\.|:|;|'|"|&|#|\[|\]|~|\$|_|`|-|{|}|\||\\/g," ");
             return str;
         },
+        // tìm kiếm các giá trị khớp với text trong combobox
         search(){
-            let KW = this.selectValue.text.toLowerCase();
-            let value = this.fomatText(KW);
-            console.log(value);
+            // chuyển từ khóa tìm kiếm về chữ thường
+            let value = this.selectValue.text.toLowerCase();
             this.dataShow = [];
             if(value != undefined){
                 this.isshow = true;
-                console.log("a");
+                // tìm kiếm các giá trị match với giá trị cần tìm
                 for (let index = 0; index < this.cacheData.length; index++) {
+                    // chuyển các text sang tiếng việt không dấu
                     const text = this.fomatText(this.cacheData[index].text.toLowerCase());
                     if(text.search(value.toLowerCase()) != -1){
                         this.dataShow.push(this.cacheData[index]);
                     }
                 }
             }
-        }
+            
+        },
     },
     updated(){
         if(this.selectValue.text == ''){
             this.dataShow = this.cacheData;
         }
-
     }
 }
 </script>
@@ -136,7 +198,7 @@ export default {
         display: block !important;  
     }
     .no-data{
-        border: 1px red;
+        border: 1px solid red;
     }
     .combo-box-wrap input[type="text"]{
         border: none;
@@ -166,5 +228,8 @@ export default {
     }
     .item-selected{
         background: #8ec6ff;
+    }
+    .row-current{
+        background: rgb(34, 151, 34) !important ;
     }
 </style>
